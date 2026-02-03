@@ -1,0 +1,54 @@
+yusufnar@yusufs-MacBook-Pro pgpool % ./test_failover_timing.sh
+========================================================
+FAILOVER TIMING TEST
+========================================================
+[15:18:35] Initial Status:
+========================================================
+1. Current Pgpool Backend Nodes (SHOW POOL_NODES)
+========================================================
+ node_id |     hostname      | port | status | pg_status | lb_weight |  role   | pg_role | select_cnt | load_balance_node | replication_delay | replication_state | replication_sync_state | last_status_change  
+---------+-------------------+------+--------+-----------+-----------+---------+---------+------------+-------------------+-------------------+-------------------+------------------------+---------------------
+ 0       | postgres-primary  | 5432 | up     | up        | 0.000000  | primary | primary | 0          | false             | 0                 |                   |                        | 2026-02-03 12:09:02
+ 1       | postgres-replica1 | 5432 | up     | up        | 0.500000  | standby | standby | 67         | false             | 0                 | streaming         | async                  | 2026-02-03 12:15:59
+ 2       | postgres-replica2 | 5432 | up     | up        | 0.500000  | standby | standby | 189        | true              | 0                 | streaming         | async                  | 2026-02-03 12:09:02
+(3 rows)
+
+
+========================================================
+2. Testing Load Balancing (Executing 10 Queries)
+========================================================
+Query 1 handled by: 192.168.148.4
+
+[15:18:35] STOPPING postgres-replica1...
+[15:18:35] Waiting for Pgpool to detect failure...
+[15:19:24] ✅ Pgpool marked node as DOWN
+    Detection time: 49 seconds
+
+[15:19:24] STARTING postgres-replica1...
+[15:19:24] Waiting for Pgpool auto-failback...
+[15:19:55] ✅ Pgpool marked node as UP
+    Recovery time: 31 seconds
+
+========================================================
+SUMMARY
+========================================================
+Failure Detection Time: 49 seconds
+Auto-Failback Time:     31 seconds
+========================================================
+
+[15:19:55] Final Status:
+========================================================
+1. Current Pgpool Backend Nodes (SHOW POOL_NODES)
+========================================================
+ node_id |     hostname      | port | status | pg_status | lb_weight |  role   | pg_role | select_cnt | load_balance_node | replication_delay | replication_state | replication_sync_state | last_status_change  
+---------+-------------------+------+--------+-----------+-----------+---------+---------+------------+-------------------+-------------------+-------------------+------------------------+---------------------
+ 0       | postgres-primary  | 5432 | up     | up        | 0.000000  | primary | primary | 0          | false             | 0                 |                   |                        | 2026-02-03 12:09:02
+ 1       | postgres-replica1 | 5432 | up     | up        | 0.500000  | standby | standby | 69         | true              | 0                 | streaming         | async                  | 2026-02-03 12:19:54
+ 2       | postgres-replica2 | 5432 | up     | up        | 0.500000  | standby | standby | 339        | false             | 0                 | streaming         | async                  | 2026-02-03 12:09:02
+(3 rows)
+
+
+========================================================
+2. Testing Load Balancing (Executing 10 Queries)
+========================================================
+Query 1 handled by: 192.168.148.3
