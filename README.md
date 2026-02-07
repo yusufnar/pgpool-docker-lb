@@ -1,8 +1,8 @@
 # Pgpool-II PostgreSQL Read Load Balancing Setup
 
-This project demonstrates **read load balancing** for PostgreSQL using **Pgpool-II** and Docker Compose. It distributes SELECT queries across multiple streaming replicas while directing all write operations to the primary server.
+This project demonstrates **read load balancing** for PostgreSQL using **Pgpool-II** and Docker Compose. It distributes SELECT queries across multiple streaming replicas while directing all write operations to the pg-primary server.
 
-> **Note**: This setup focuses on **read scaling** and **connection pooling**. It does not include automatic primary failover (promoting a replica to primary). It also assumes that your application manages read queries appropriately — Pgpool will load balance all SELECT statements across replicas, so ensure your application can tolerate eventual consistency for read operations.
+> **Note**: This setup focuses on **read scaling** and **connection pooling**. It does not include automatic pg-primary failover (promoting a replica to pg-primary). It also assumes that your application manages read queries appropriately — Pgpool will load balance all SELECT statements across replicas, so ensure your application can tolerate eventual consistency for read operations.
 
 ## 🏗️ Architecture
 
@@ -23,7 +23,7 @@ This project demonstrates **read load balancing** for PostgreSQL using **Pgpool-
          │                   │                   │
          ▼                   ▼                   ▼
 ┌─────────────────┐ ┌──────────────────┐ ┌──────────────────┐
-│ primary│ │ replica1│ │ replica2│
+│ pg-primary│ │ pg-replica1│ │ pg-replica2│
 │  (Write Only)   │ │   (Read Only)    │ │   (Read Only)    │
 │   weight = 0    │ │   weight = 1     │ │   weight = 1     │
 └─────────────────┘ └──────────────────┘ └──────────────────┘
@@ -31,7 +31,7 @@ This project demonstrates **read load balancing** for PostgreSQL using **Pgpool-
 
 ## ✨ Features
 
-- **⚖️ Read Load Balancing**: SELECT queries are automatically distributed across replicas (primary has weight 0)
+- **⚖️ Read Load Balancing**: SELECT queries are automatically distributed across replicas (pg-primary has weight 0)
 - **🔄 Streaming Replication**: WAL-based replication using physical replication slots
 - **🏥 Health Check**: Backend health monitoring every 5 seconds; unhealthy nodes are excluded from load balancing
 - **🕒 Replication Lag Detection**: Replicas with lag exceeding 10 seconds are temporarily removed from the read pool
@@ -53,9 +53,9 @@ docker-compose up -d
 ```
 
 This command starts the following containers:
-- `primary` - Primary PostgreSQL instance (Port 5432)
-- `replica1` - First streaming replica
-- `replica2` - Second streaming replica
+- `pg-primary` - Primary PostgreSQL instance (Port 5432)
+- `pg-replica1` - First streaming replica
+- `pg-replica2` - Second streaming replica
 - `pgpool` - Pgpool-II load balancer (Port 5433)
 
 ### 2. Monitor the Startup Process
@@ -149,12 +149,12 @@ This script:
 
 ```yaml
 PGPOOL_BACKEND_NODES: >
-  0:primary:5432:0,      # Weight 0 - Write only
-  1:replica1:5432:1,     # Weight 1 - Read load balancing
-  2:replica2:5432:1      # Weight 1 - Read load balancing
+  0:pg-primary:5432:0,      # Weight 0 - Write only
+  1:pg-replica1:5432:1,     # Weight 1 - Read load balancing
+  2:pg-replica2:5432:1      # Weight 1 - Read load balancing
 ```
 
-Since the primary has a weight of 0, read queries are directed only to replicas.
+Since the pg-primary has a weight of 0, read queries are directed only to replicas.
 
 ## 📁 Project Structure
 
@@ -163,7 +163,7 @@ pgpool/
 ├── docker-compose.yml        # Main container orchestration
 ├── README.md                 # This file
 │
-├── primary/                  # Primary PostgreSQL configuration
+├── pg-primary/                  # Primary PostgreSQL configuration
 │   ├── init.sql              # Replication user, slots, and test table
 │   ├── 01_hba.sh             # pg_hba.conf settings
 │   └── postgresql.conf       # PostgreSQL config
@@ -194,8 +194,8 @@ docker-compose logs -f
 
 # Specific container
 docker-compose logs -f pgpool
-docker-compose logs -f primary
-docker-compose logs -f replica1
+docker-compose logs -f pg-primary
+docker-compose logs -f pg-replica1
 ```
 
 ### Replica Synchronization Issues
@@ -218,7 +218,7 @@ docker-compose restart pgpool
 ### Check Replication Slots
 
 ```bash
-docker exec primary psql -U postgres -c "SELECT * FROM pg_replication_slots;"
+docker exec pg-primary psql -U postgres -c "SELECT * FROM pg_replication_slots;"
 ```
 
 ## 🧹 Cleanup
