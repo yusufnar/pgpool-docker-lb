@@ -24,7 +24,7 @@ get_node_status() {
 
 # Initial status
 echo "[$(date +%H:%M:%S)] Initial Status:"
-PGPASSWORD=secret psql -h 127.0.0.1 -p 5433 -U postgres -d appdb -c "SELECT node_id, hostname, status, pg_status FROM (SELECT regexp_split_to_table(string_agg(row::text, E'\n'), E'\n') as row FROM (SELECT * FROM pgpool_adm_pcp_node_info(NULL,NULL,NULL,NULL)) t) x LIMIT 3;" 2>/dev/null || ./check_pgpool_nodes.sh | head -15
+PGPASSWORD=secret psql -h 127.0.0.1 -p 5433 -U postgres -d appdb -c "SELECT node_id, hostname, status, pg_status FROM (SELECT regexp_split_to_table(string_agg(row::text, E'\n'), E'\n') as row FROM (SELECT * FROM pgpool_adm_pcp_node_info(NULL,NULL,NULL,NULL)) t) x LIMIT 3;" 2>/dev/null || ./check_pgpool_nodes.sh | head -30
 
 echo ""
 echo "[$(date +%H:%M:%S)] STOPPING pg-replica1..."

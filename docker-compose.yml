@@ -83,8 +83,8 @@ services:
       PGPOOL_HEALTH_CHECK_RETRY_DELAY: 1      # 1 second between retries
 
       # 🔹 Replication Lag Check
-      PGPOOL_SR_CHECK_PERIOD: 5            # Check every 5 seconds
-      PGPOOL_DELAY_THRESHOLD_BY_TIME: 10   # Detach if lag > 10 seconds
+      PGPOOL_SR_CHECK_PERIOD: 1            # Check every 1 second
+      PGPOOL_DELAY_THRESHOLD_BY_TIME: 1000 # Detach if lag > 1 second (1000ms)
       PGPOOL_DELAY_THRESHOLD: 0            # Disable byte-based check (optional)
 
       # 🔹 Auto Failback (Auto-recovery)
