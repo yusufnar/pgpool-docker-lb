@@ -19,6 +19,11 @@ if [ -z "$(ls -A "$PGDATA")" ]; then
 
     echo "Base backup completed."
     
+    # Add unique application_name to primary_conninfo for proper lag tracking
+    # This allows Pgpool to distinguish between replicas
+    sed -i "s/primary_conninfo = '/primary_conninfo = 'application_name=${REPLICATION_SLOT} /" "$PGDATA/postgresql.auto.conf"
+    echo "Added application_name=${REPLICATION_SLOT} to primary_conninfo"
+    
     # Fix permissions (just in case)
     chmod 0700 "$PGDATA"
 else
