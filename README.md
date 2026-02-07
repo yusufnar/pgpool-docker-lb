@@ -39,6 +39,35 @@ This project demonstrates **read load balancing** for PostgreSQL using **Pgpool-
 - **🏊 Connection Pooling**: 64 child processes, 2 connections per backend each (max 384 connections)
 - **🐳 Custom Dockerfile**: Full control over Pgpool configuration
 
+## 🐳 Container Images
+
+| Container | Image | Description |
+|-----------|-------|-------------|
+| pg-primary | `postgres:15` | Official PostgreSQL 15 image (primary) |
+| pg-replica1 | `postgres:15` | Official PostgreSQL 15 image (streaming replica) |
+| pg-replica2 | `postgres:15` | Official PostgreSQL 15 image (streaming replica) |
+| pgpool | Custom build | `postgres:15-alpine` + pgpool (ARM64/AMD64 compatible) |
+
+### Why Custom Pgpool Image?
+
+- **Official `pgpool/pgpool`**: Only AMD64, not ARM64 compatible (fails on M1/M2 Macs)
+- **Bitnami `bitnami/pgpool`**: Discontinued from Docker Hub (Aug 2025)
+- **Our solution**: Custom Dockerfile based on `postgres:15-alpine` with pgpool package
+
+### Pgpool Dockerfile
+
+```dockerfile
+FROM postgres:15-alpine
+RUN apk add --no-cache pgpool pgpool-openrc bash
+COPY pgpool.conf pool_hba.conf pool_passwd pcp.conf /etc/pgpool-II/
+EXPOSE 5432 9898
+```
+
+This provides:
+- Full control over `pgpool.conf`
+- ARM64 & AMD64 compatibility
+- No dependency on third-party images
+
 ## 📋 Prerequisites
 
 - Docker & Docker Compose
