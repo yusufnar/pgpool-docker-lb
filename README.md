@@ -1,8 +1,8 @@
 # Pgpool-II PostgreSQL Read Load Balancing Setup
 
-This project demonstrates **read load balancing** for PostgreSQL using **Pgpool-II** and Docker Compose. It distributes SELECT queries across multiple streaming replicas while directing all write operations to the pg-primary server.
+This project demonstrates **read load balancing** for PostgreSQL using **Pgpool-II** and Docker Compose. It distributes SELECT queries across multiple streaming replicas while directing all write operations to the primary server.
 
-> **Note**: This setup focuses on **read scaling** and **connection pooling**. It does not include automatic pg-primary failover (promoting a replica to pg-primary). It also assumes that your application manages read queries appropriately — Pgpool will load balance all SELECT statements across replicas, so ensure your application can tolerate eventual consistency for read operations.
+> **Note**: This setup focuses on **read scaling** and **connection pooling**. It does not include automatic primary failover (promoting a replica to primary).
 
 ## 🏗️ Architecture
 
@@ -23,7 +23,7 @@ This project demonstrates **read load balancing** for PostgreSQL using **Pgpool-
          │                   │                   │
          ▼                   ▼                   ▼
 ┌─────────────────┐ ┌──────────────────┐ ┌──────────────────┐
-│ pg-primary│ │ pg-replica1│ │ pg-replica2│
+│   pg-primary    │ │   pg-replica1    │ │   pg-replica2    │
 │  (Write Only)   │ │   (Read Only)    │ │   (Read Only)    │
 │   weight = 0    │ │   weight = 1     │ │   weight = 1     │
 └─────────────────┘ └──────────────────┘ └──────────────────┘
@@ -31,17 +31,17 @@ This project demonstrates **read load balancing** for PostgreSQL using **Pgpool-
 
 ## ✨ Features
 
-- **⚖️ Read Load Balancing**: SELECT queries are automatically distributed across replicas (pg-primary has weight 0)
+- **⚖️ Read Load Balancing**: SELECT queries distributed across replicas (primary has weight 0)
 - **🔄 Streaming Replication**: WAL-based replication using physical replication slots
-- **🏥 Health Check**: Backend health monitoring every 5 seconds; unhealthy nodes are excluded from load balancing
-- **🕒 Replication Lag Detection**: Replicas with lag exceeding 10 seconds are temporarily removed from the read pool
-- **🔁 Auto Failback**: Recovered replicas are automatically re-added to the read pool
-- **🏊 Connection Pooling**: Efficient connection management (16 child processes, 2 connections per backend each)
+- **🏥 Health Check**: Backend health monitoring every 1 second
+- **🕒 Replication Lag Detection**: Replicas with lag > 1 second are excluded from load balancing
+- **🔁 Auto Failback**: Recovered replicas automatically re-added to the read pool
+- **🏊 Connection Pooling**: 64 child processes, 2 connections per backend each (max 384 connections)
+- **🐳 Custom Dockerfile**: Full control over Pgpool configuration
 
 ## 📋 Prerequisites
 
-- Docker
-- Docker Compose
+- Docker & Docker Compose
 - psql client (for test scripts)
 
 ## 🚀 Getting Started
@@ -52,167 +52,120 @@ This project demonstrates **read load balancing** for PostgreSQL using **Pgpool-
 docker-compose up -d
 ```
 
-This command starts the following containers:
-- `pg-primary` - Primary PostgreSQL instance (Port 5432)
-- `pg-replica1` - First streaming replica
-- `pg-replica2` - Second streaming replica
-- `pgpool` - Pgpool-II load balancer (Port 5433)
+This starts:
+- `pg-primary` - Primary PostgreSQL (Port 5432)
+- `pg-replica1` - Streaming replica
+- `pg-replica2` - Streaming replica
+- `pgpool` - Custom-built Pgpool-II load balancer (Port 5433)
 
-### 2. Monitor the Startup Process
-
-```bash
-docker-compose logs -f
-```
-
-### 3. Check Cluster Status
+### 2. Check Cluster Status
 
 ```bash
-./check_pgpool_nodes.sh
+PGPASSWORD=secret psql -h localhost -p 5433 -U postgres -d appdb -c "SHOW POOL_NODES"
 ```
 
 ## 📡 Connection
 
-### Via Pgpool (Recommended)
-
 ```bash
+# Via Pgpool (recommended)
 PGPASSWORD=secret psql -h localhost -p 5433 -U postgres -d appdb
-```
 
-### Direct to Primary
-
-```bash
+# Direct to Primary
 PGPASSWORD=secret psql -h localhost -p 5432 -U postgres -d appdb
 ```
 
-## 🧪 Test Scripts
+## 🧪 Test & Monitor Scripts
 
-### Replication Status Check
-
-```bash
-./check_replication.sh
-```
-
-This script:
-1. Checks replication lag on both Primary and Replicas
-2. Inserts new data into Primary
-3. Verifies data replication on Replicas
-4. Validates recovery mode status
-
-### Detailed Replication Lag Check
-
-```bash
-./check_lag.sh
-```
-
-This script displays:
-- `pg_stat_replication` information from Primary
-- Replication slot details
-- LSN and time lag for each replica
-
-### Pgpool Node Status
-
-```bash
-./check_pgpool_nodes.sh
-```
-
-This script:
-1. Shows all backend statuses via `SHOW POOL_NODES`
-2. Runs 10 test queries to verify load balancing
-
-### Failover Timing Test
-
-```bash
-./test_failover_timing.sh
-```
-
-This script:
-1. Stops a replica container
-2. Measures Pgpool's failure detection time
-3. Restarts the replica
-4. Measures auto-failback recovery time
+| Script | Description |
+|--------|-------------|
+| `./monitor_load_balancing.sh` | Real-time query distribution monitor |
+| `./monitor_connections.sh` | Backend connection stats (idle/active) |
+| `./check_lag.sh` | Detailed replication lag info |
+| `./check_replication.sh` | Full replication test |
+| `./check_pgpool_nodes.sh` | Pgpool node status |
+| `./test_failover_timing.sh` | Failover detection timing |
+| `./test_artificial_lag.sh` | Test lag detection on one replica |
+| `./test_replica_down.sh` | Test replica down scenario |
+| `./test_both_replicas_down.sh` | Test all replicas down |
+| `./test_both_replicas_lag.sh` | Test lag on all replicas |
 
 ## ⚙️ Configuration
 
-### Pgpool Settings (docker-compose.yml)
+### Pgpool Settings (pgpool/pgpool.conf)
 
 | Parameter | Value | Description |
 |-----------|-------|-------------|
-| `PGPOOL_HEALTH_CHECK_PERIOD` | 5 | Health check interval (seconds) |
-| `PGPOOL_HEALTH_CHECK_TIMEOUT` | 3 | Health check timeout (seconds) |
-| `PGPOOL_HEALTH_CHECK_MAX_RETRIES` | 3 | Retry count before marking node down |
-| `PGPOOL_SR_CHECK_PERIOD` | 5 | Replication lag check interval |
-| `PGPOOL_DELAY_THRESHOLD_BY_TIME` | 10 | Maximum allowed lag (seconds) |
-| `PGPOOL_AUTO_FAILBACK` | yes | Auto failback enabled |
-| `PGPOOL_AUTO_FAILBACK_INTERVAL` | 5 | Failback check interval |
+| `num_init_children` | 64 | Max concurrent client connections |
+| `max_pool` | 2 | Connections per backend per child |
+| `connection_life_time` | 600 | Connection lifetime (10 min) |
+| `health_check_period` | 1 | Health check interval (seconds) |
+| `health_check_max_retries` | 1 | Retries before marking down |
+| `sr_check_period` | 1 | Replication lag check interval |
+| `delay_threshold_by_time` | 1000 | Max allowed lag (1 second = 1000ms) |
+| `prefer_lower_delay_standby` | on | Prefer replica with lower lag |
+| `auto_failback` | on | Auto re-add recovered replicas |
 
 ### Backend Weights
 
-```yaml
-PGPOOL_BACKEND_NODES: >
-  0:pg-primary:5432:0,      # Weight 0 - Write only
-  1:pg-replica1:5432:1,     # Weight 1 - Read load balancing
-  2:pg-replica2:5432:1      # Weight 1 - Read load balancing
+Primary has weight 0 = read queries only go to replicas:
 ```
-
-Since the pg-primary has a weight of 0, read queries are directed only to replicas.
+backend_weight0 = 0  # pg-primary (write only)
+backend_weight1 = 1  # pg-replica1 (read)
+backend_weight2 = 1  # pg-replica2 (read)
+```
 
 ## 📁 Project Structure
 
 ```
 pgpool/
-├── docker-compose.yml        # Main container orchestration
-├── README.md                 # This file
+├── docker-compose.yml          # Container orchestration
+├── README.md
 │
-├── pg-primary/                  # Primary PostgreSQL configuration
-│   ├── init.sql              # Replication user, slots, and test table
-│   ├── 01_hba.sh             # pg_hba.conf settings
-│   └── postgresql.conf       # PostgreSQL config
+├── pg-primary/                 # Primary PostgreSQL
+│   ├── init.sql                # Replication user, slots, test table
+│   ├── 01_hba.sh               # pg_hba.conf settings
+│   └── postgresql.conf
 │
-├── replica/                  # Replica configuration
-│   ├── init_replica.sh       # Base backup and replication setup
-│   ├── postgresql.conf       # Replica-specific config
-│   └── recovery.conf         # Replication parameters
+├── replica/                    # Replica configuration
+│   ├── init_replica.sh         # Base backup and replication setup
+│   ├── postgresql.conf
+│   └── recovery.conf
 │
-├── pgpool/                   # Pgpool configuration
-│   ├── pgpool.conf           # Pgpool settings
-│   └── pool_hba.conf         # Client authentication
+├── pgpool/                     # Custom Pgpool build
+│   ├── Dockerfile              # Custom ARM64-compatible image
+│   ├── entrypoint.sh           # Startup script
+│   ├── pgpool.conf             # Full configuration
+│   ├── pool_hba.conf           # Client authentication
+│   ├── pool_passwd             # User passwords
+│   └── pcp.conf                # PCP admin config
 │
-└── scripts (root level)
-    ├── check_lag.sh              # Detailed replication lag check
-    ├── check_replication.sh      # Full replication test
-    ├── check_pgpool_nodes.sh     # Pgpool node and LB test
-    └── test_failover_timing.sh   # Failover timing test
+└── scripts (root)
+    ├── monitor_load_balancing.sh   # Real-time LB monitor
+    ├── monitor_connections.sh      # Connection stats monitor
+    ├── check_lag.sh                # Replication lag check
+    ├── check_replication.sh        # Full replication test
+    ├── check_pgpool_nodes.sh       # Pool nodes status
+    ├── test_failover_timing.sh     # Failover timing test
+    ├── test_artificial_lag.sh      # Lag detection test
+    ├── test_replica_down.sh        # Replica down test
+    ├── test_both_replicas_down.sh  # All replicas down test
+    └── test_both_replicas_lag.sh   # All replicas lag test
 ```
 
 ## 🔧 Troubleshooting
 
-### View Container Logs
+### View Logs
 
 ```bash
-# All logs
-docker-compose logs -f
-
-# Specific container
 docker-compose logs -f pgpool
 docker-compose logs -f pg-primary
-docker-compose logs -f pg-replica1
 ```
 
-### Replica Synchronization Issues
-
-If a replica is not synchronizing:
+### Reset Everything
 
 ```bash
-# Clean volumes and restart
 docker-compose down -v
-docker-compose up -d
-```
-
-### Pgpool Node Down Status
-
-```bash
-# Restart Pgpool
-docker-compose restart pgpool
+docker-compose up -d --build
 ```
 
 ### Check Replication Slots
@@ -221,25 +174,10 @@ docker-compose restart pgpool
 docker exec pg-primary psql -U postgres -c "SELECT * FROM pg_replication_slots;"
 ```
 
-## 🧹 Cleanup
-
-### Stop Containers
-
-```bash
-docker-compose down
-```
-
-### Remove All Data
-
-```bash
-docker-compose down -v
-```
-
 ## 📚 References
 
 - [Pgpool-II Documentation](https://www.pgpool.net/docs/latest/en/html/)
 - [PostgreSQL Streaming Replication](https://www.postgresql.org/docs/current/warm-standby.html)
-- [PostgreSQL Replication Slots](https://www.postgresql.org/docs/current/warm-standby.html#STREAMING-REPLICATION-SLOTS)
 
 ## 📄 License
 
