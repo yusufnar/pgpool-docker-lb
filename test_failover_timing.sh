@@ -4,6 +4,19 @@ echo "========================================================"
 echo "FAILOVER TIMING TEST"
 echo "========================================================"
 
+# Log PostgreSQL instance IPs
+echo ""
+echo "[$(date +%H:%M:%S)] PostgreSQL Instance IPs:"
+for container in postgres-primary postgres-replica1 postgres-replica2; do
+    IP=$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' $container 2>/dev/null)
+    if [ -n "$IP" ]; then
+        echo "    $container: $IP"
+    else
+        echo "    $container: (not running)"
+    fi
+done
+echo ""
+
 # Function to get node status
 get_node_status() {
     PGPASSWORD=secret psql -h 127.0.0.1 -p 5433 -U postgres -d appdb -t -c "SHOW POOL_NODES" 2>/dev/null | grep "postgres-replica1" | awk -F'|' '{print $4}' | tr -d ' '
