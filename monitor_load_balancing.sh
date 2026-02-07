@@ -45,7 +45,7 @@ while true; do
     primary_count=0
     error_count=0
     
-    for i in 1 2 3 4 5 6 7 8 9 10; do
+    for i in {1..30}; do
         ip=$(PGPASSWORD=secret psql -h $PGPOOL_HOST -p $PGPOOL_PORT -U $USER -d $DB -t -c "SELECT inet_server_addr();" 2>/dev/null | tr -d '[:space:]')
         
         if [ -n "$ip" ]; then
