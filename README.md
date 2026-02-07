@@ -23,7 +23,7 @@ This project demonstrates **read load balancing** for PostgreSQL using **Pgpool-
          │                   │                   │
          ▼                   ▼                   ▼
 ┌─────────────────┐ ┌──────────────────┐ ┌──────────────────┐
-│ postgres-primary│ │ postgres-replica1│ │ postgres-replica2│
+│ primary│ │ replica1│ │ replica2│
 │  (Write Only)   │ │   (Read Only)    │ │   (Read Only)    │
 │   weight = 0    │ │   weight = 1     │ │   weight = 1     │
 └─────────────────┘ └──────────────────┘ └──────────────────┘
@@ -53,9 +53,9 @@ docker-compose up -d
 ```
 
 This command starts the following containers:
-- `postgres-primary` - Primary PostgreSQL instance (Port 5432)
-- `postgres-replica1` - First streaming replica
-- `postgres-replica2` - Second streaming replica
+- `primary` - Primary PostgreSQL instance (Port 5432)
+- `replica1` - First streaming replica
+- `replica2` - Second streaming replica
 - `pgpool` - Pgpool-II load balancer (Port 5433)
 
 ### 2. Monitor the Startup Process
@@ -149,9 +149,9 @@ This script:
 
 ```yaml
 PGPOOL_BACKEND_NODES: >
-  0:postgres-primary:5432:0,      # Weight 0 - Write only
-  1:postgres-replica1:5432:1,     # Weight 1 - Read load balancing
-  2:postgres-replica2:5432:1      # Weight 1 - Read load balancing
+  0:primary:5432:0,      # Weight 0 - Write only
+  1:replica1:5432:1,     # Weight 1 - Read load balancing
+  2:replica2:5432:1      # Weight 1 - Read load balancing
 ```
 
 Since the primary has a weight of 0, read queries are directed only to replicas.
@@ -194,8 +194,8 @@ docker-compose logs -f
 
 # Specific container
 docker-compose logs -f pgpool
-docker-compose logs -f postgres-primary
-docker-compose logs -f postgres-replica1
+docker-compose logs -f primary
+docker-compose logs -f replica1
 ```
 
 ### Replica Synchronization Issues
@@ -218,7 +218,7 @@ docker-compose restart pgpool
 ### Check Replication Slots
 
 ```bash
-docker exec postgres-primary psql -U postgres -c "SELECT * FROM pg_replication_slots;"
+docker exec primary psql -U postgres -c "SELECT * FROM pg_replication_slots;"
 ```
 
 ## 🧹 Cleanup

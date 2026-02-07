@@ -9,7 +9,7 @@ print_header() {
 
 # 1. Check initial lag on Primary
 print_header "1. Initial Replication Lag Check (on Primary)"
-docker exec postgres-primary psql -U postgres -c "
+docker exec primary psql -U postgres -c "
 SELECT 
     client_addr, 
     application_name, 
@@ -22,7 +22,7 @@ FROM pg_stat_replication;
 
 # 1b. Check initial lag on Replicas
 print_header "1b. Initial Replication Lag Check (from Replicas)"
-for replica in postgres-replica1 postgres-replica2; do
+for replica in replica1 replica2; do
     echo "Checking $replica..."
     docker exec $replica psql -U postgres -c "
     SELECT 
@@ -38,18 +38,18 @@ done
 print_header "2. Inserting new record into Primary"
 NEW_DATA="test_data_$(date +%s)"
 echo "Inserting info: '$NEW_DATA'"
-docker exec postgres-primary psql -U postgres -d appdb -c "INSERT INTO ynar (info) VALUES ('$NEW_DATA');"
+docker exec primary psql -U postgres -d appdb -c "INSERT INTO ynar (info) VALUES ('$NEW_DATA');"
 
 # 3. Check new record on Replicas
 print_header "3. Verifying data on Replicas"
-for replica in postgres-replica1 postgres-replica2; do
+for replica in replica1 replica2; do
     echo "Checking $replica..."
     docker exec $replica psql -U postgres -d appdb -c "SELECT * FROM ynar ORDER BY id DESC LIMIT 1;"
 done
 
 # 4. Check Recovery Status
 print_header "4. Checking pg_is_in_recovery() on Replicas"
-for replica in postgres-replica1 postgres-replica2; do
+for replica in replica1 replica2; do
     echo "Checking $replica..."
     STATUS=$(docker exec $replica psql -U postgres -t -c "SELECT pg_is_in_recovery();" | tr -d '[:space:]')
     echo "Is in recovery? $STATUS"
@@ -62,7 +62,7 @@ done
 
 # 5. Check lag again 1- FROM PRIMARY SIDE
 print_header "5. Final Replication Lag Check (on Primary)"
-docker exec postgres-primary psql -U postgres -c "
+docker exec primary psql -U postgres -c "
 SELECT 
     client_addr, 
     application_name, 
@@ -77,7 +77,7 @@ FROM pg_stat_replication;
 
 # 6. Check lag again 2- FROM REPLICA SIDE (more accurate)
 print_header "5. Final Replication Lag Check (from Replicas - More Accurate)"
-for replica in postgres-replica1 postgres-replica2; do
+for replica in replica1 replica2; do
     echo "Checking $replica..."
     docker exec $replica psql -U postgres -c "
     SELECT 

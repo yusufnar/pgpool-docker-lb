@@ -7,7 +7,7 @@ echo "========================================================"
 # Log PostgreSQL instance IPs
 echo ""
 echo "[$(date +%H:%M:%S)] PostgreSQL Instance IPs:"
-for container in postgres-primary postgres-replica1 postgres-replica2; do
+for container in primary replica1 replica2; do
     IP=$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' $container 2>/dev/null)
     if [ -n "$IP" ]; then
         echo "    $container: $IP"
@@ -19,7 +19,7 @@ echo ""
 
 # Function to get node status
 get_node_status() {
-    PGPASSWORD=secret psql -h 127.0.0.1 -p 5433 -U postgres -d appdb -t -c "SHOW POOL_NODES" 2>/dev/null | grep "postgres-replica1" | awk -F'|' '{print $4}' | tr -d ' '
+    PGPASSWORD=secret psql -h 127.0.0.1 -p 5433 -U postgres -d appdb -t -c "SHOW POOL_NODES" 2>/dev/null | grep "replica1" | awk -F'|' '{print $4}' | tr -d ' '
 }
 
 # Initial status
@@ -27,9 +27,9 @@ echo "[$(date +%H:%M:%S)] Initial Status:"
 PGPASSWORD=secret psql -h 127.0.0.1 -p 5433 -U postgres -d appdb -c "SELECT node_id, hostname, status, pg_status FROM (SELECT regexp_split_to_table(string_agg(row::text, E'\n'), E'\n') as row FROM (SELECT * FROM pgpool_adm_pcp_node_info(NULL,NULL,NULL,NULL)) t) x LIMIT 3;" 2>/dev/null || ./check_pgpool_nodes.sh | head -15
 
 echo ""
-echo "[$(date +%H:%M:%S)] STOPPING postgres-replica1..."
+echo "[$(date +%H:%M:%S)] STOPPING replica1..."
 STOP_TIME=$(date +%s)
-docker stop postgres-replica1 > /dev/null
+docker stop replica1 > /dev/null
 
 # Poll for DOWN status
 echo "[$(date +%H:%M:%S)] Waiting for Pgpool to detect failure..."
@@ -46,9 +46,9 @@ while true; do
 done
 
 echo ""
-echo "[$(date +%H:%M:%S)] STARTING postgres-replica1..."
+echo "[$(date +%H:%M:%S)] STARTING replica1..."
 START_TIME=$(date +%s)
-docker start postgres-replica1 > /dev/null
+docker start replica1 > /dev/null
 
 # Poll for UP status
 echo "[$(date +%H:%M:%S)] Waiting for Pgpool auto-failback..."

@@ -4,7 +4,7 @@ echo "========================================================"
 echo "PRIMARY NODE: pg_stat_replication"
 echo "========================================================"
 # Shows the lag as seen by the Primary (write, flush, replay lag)
-docker exec postgres-primary psql -U postgres -c "
+docker exec primary psql -U postgres -c "
 SELECT 
     pid,
     client_addr, 
@@ -26,7 +26,7 @@ echo ""
 echo "========================================================"
 echo "PRIMARY NODE: Replication Slots Detailed"
 echo "========================================================"
-docker exec postgres-primary psql -U postgres -c "
+docker exec primary psql -U postgres -c "
 SELECT
   slot_name,
   slot_type,
@@ -47,7 +47,7 @@ echo "========================================================"
 echo "REPLICA NODES: LSN & Time Lag Status"
 echo "========================================================"
 
-for replica in postgres-replica1 postgres-replica2; do
+for replica in replica1 replica2; do
     echo "--- $replica ---"
     docker exec $replica psql -U postgres -c "
     SELECT 
