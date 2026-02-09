@@ -17,6 +17,7 @@ RUN mkdir -p /etc/pgpool-II /var/run/pgpool /var/log/pgpool && \
 COPY pgpool.conf /etc/pgpool-II/pgpool.conf
 COPY pool_hba.conf /etc/pgpool-II/pool_hba.conf
 COPY pool_passwd /etc/pgpool-II/pool_passwd
+COPY pcp.conf /etc/pgpool-II/pcp.conf
 
 # Set permissions
 RUN chmod 600 /etc/pgpool-II/pool_passwd && \
