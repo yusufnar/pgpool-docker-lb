@@ -22,6 +22,7 @@ COPY pcp.conf /etc/pgpool-II/pcp.conf
 # Create .pcppass for local PCP commands (client-side auth)
 RUN echo "localhost:9898:postgres:secret" > /var/lib/postgresql/.pcppass && \
     echo "127.0.0.1:9898:postgres:secret" >> /var/lib/postgresql/.pcppass && \
+    echo "/var/run/pgpool:9898:postgres:secret" >> /var/lib/postgresql/.pcppass && \
     chmod 600 /var/lib/postgresql/.pcppass && \
     chown postgres:postgres /var/lib/postgresql/.pcppass
 
