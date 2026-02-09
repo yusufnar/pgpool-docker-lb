@@ -43,10 +43,10 @@ This project demonstrates **read load balancing** for PostgreSQL using **Pgpool-
 
 | Container | Image | Description |
 |-----------|-------|-------------|
-| pg-primary | `postgres:15` | Official PostgreSQL 15 image (primary) |
-| pg-replica1 | `postgres:15` | Official PostgreSQL 15 image (streaming replica) |
-| pg-replica2 | `postgres:15` | Official PostgreSQL 15 image (streaming replica) |
-| pgpool | Custom build | `postgres:15-alpine` + pgpool (ARM64/AMD64 compatible) |
+| pg-primary | `postgres:17` | Official PostgreSQL 17 image (primary) |
+| pg-replica1 | `postgres:17` | Official PostgreSQL 17 image (streaming replica) |
+| pg-replica2 | `postgres:17` | Official PostgreSQL 17 image (streaming replica) |
+| pgpool-read | Custom build | `postgres:17-alpine` + pgpool (ARM64/AMD64 compatible) |
 
 ### Why Custom Pgpool Image?
 
@@ -54,10 +54,10 @@ This project demonstrates **read load balancing** for PostgreSQL using **Pgpool-
 - **Bitnami `bitnami/pgpool`**: Discontinued from Docker Hub (Aug 2025)
 - **Our solution**: Custom Dockerfile based on `postgres:15-alpine` with pgpool package
 
-### Pgpool Dockerfile
+### Pgpool-Read Dockerfile
 
 ```dockerfile
-FROM postgres:15-alpine
+FROM postgres:17-alpine
 RUN apk add --no-cache pgpool pgpool-openrc bash
 COPY pgpool.conf pool_hba.conf pool_passwd pcp.conf /etc/pgpool-II/
 EXPOSE 5432 9898
@@ -85,7 +85,7 @@ This starts:
 - `pg-primary` - Primary PostgreSQL (Port 5432)
 - `pg-replica1` - Streaming replica
 - `pg-replica2` - Streaming replica
-- `pgpool` - Custom-built Pgpool-II load balancer (Port 5433)
+- `pgpool-read` - Custom-built Pgpool-II load balancer (Port 5433)
 
 ### 2. Check Cluster Status
 
@@ -160,7 +160,7 @@ pgpool/
 │   ├── postgresql.conf
 │   └── recovery.conf
 │
-├── pgpool/                     # Custom Pgpool build
+├── pgpool/                     # Custom Pgpool-Read build
 │   ├── Dockerfile              # Custom ARM64-compatible image
 │   ├── entrypoint.sh           # Startup script
 │   ├── pgpool.conf             # Full configuration
@@ -186,7 +186,7 @@ pgpool/
 ### View Logs
 
 ```bash
-docker-compose logs -f pgpool
+docker-compose logs -f pgpool-read
 docker-compose logs -f pg-primary
 ```
 
