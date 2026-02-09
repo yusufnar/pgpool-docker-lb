@@ -1,7 +1,7 @@
 # Pgpool-II Custom Dockerfile
 # ARM64 compatible, full config control
 
-FROM postgres:15-alpine
+FROM postgres:17-alpine
 
 # Install pgpool
 RUN apk add --no-cache \
