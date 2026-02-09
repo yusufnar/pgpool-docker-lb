@@ -3,7 +3,7 @@
 # Test Both Replicas Down Scenario
 # Stops both pg-replica1 and pg-replica2 to test Pgpool behavior
 
-DOWN_DURATION=20
+DOWN_DURATION=10
 
 echo "╔══════════════════════════════════════════════════════════════╗"
 echo "║    BOTH REPLICAS DOWN TEST                                   ║"
