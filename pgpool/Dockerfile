@@ -19,6 +19,12 @@ COPY pool_hba.conf /etc/pgpool-II/pool_hba.conf
 COPY pool_passwd /etc/pgpool-II/pool_passwd
 COPY pcp.conf /etc/pgpool-II/pcp.conf
 
+# Create .pcppass for local PCP commands (client-side auth)
+RUN echo "localhost:9898:postgres:secret" > /var/lib/postgresql/.pcppass && \
+    echo "127.0.0.1:9898:postgres:secret" >> /var/lib/postgresql/.pcppass && \
+    chmod 600 /var/lib/postgresql/.pcppass && \
+    chown postgres:postgres /var/lib/postgresql/.pcppass
+
 # Set permissions
 RUN chmod 600 /etc/pgpool-II/pool_passwd && \
     chown -R postgres:postgres /etc/pgpool-II

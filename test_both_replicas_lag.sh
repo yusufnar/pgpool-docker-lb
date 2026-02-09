@@ -32,7 +32,7 @@ echo "[$(date +%H:%M:%S)] Generating writes on primary to create lag..."
 docker exec pg-primary psql -U postgres -d appdb -c "INSERT INTO ynar (info) VALUES ('both_lag_test');" >/dev/null 2>&1
 echo "  Inserted row"
 
-sleep 5
+sleep 10
 
 # Show Pgpool node status after lag created
 echo ""
